@@ -16,6 +16,10 @@
       {
         "command": "local-code-search.search",
         "title": "Local Code Search: Search Codebase"
+      },
+      {
+        "command": "local-code-search.index",
+        "title": "Local Code Search: Index Workspace"
       }
     ],
     "configuration": {

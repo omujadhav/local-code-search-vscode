@@ -19,7 +19,7 @@ interface SearchResponse {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand('local-code-search.search', async () => {
+  const searchCommand = vscode.commands.registerCommand('local-code-search.search', async () => {
     const query = await vscode.window.showInputBox({
       prompt: 'Search your codebase by meaning',
       placeHolder: 'e.g. how do I handle authentication'
@@ -66,9 +66,13 @@ export function activate(context: vscode.ExtensionContext) {
               }
 
               if (parsed.error === 'no_index') {
-                vscode.window.showWarningMessage(
-                  'No index found. Run "python main.py index <folder>" first.'
+                const choice = await vscode.window.showWarningMessage(
+                  'No index found for this codebase.',
+                  'Index Now'
                 );
+                if (choice === 'Index Now') {
+                  vscode.commands.executeCommand('local-code-search.index');
+                }
                 resolve();
                 return;
               }
@@ -107,7 +111,50 @@ export function activate(context: vscode.ExtensionContext) {
     );
   });
 
-  context.subscriptions.push(disposable);
+  const indexCommand = vscode.commands.registerCommand('local-code-search.index', async () => {
+    const config = vscode.workspace.getConfiguration('localCodeSearch');
+    const pythonPath = config.get<string>('pythonPath', 'python');
+    const mainScriptPath = config.get<string>('mainScriptPath', '');
+
+    if (!mainScriptPath) {
+      vscode.window.showErrorMessage(
+        'Please set "localCodeSearch.mainScriptPath" in settings to point to your main.py file.'
+      );
+      return;
+    }
+
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders || folders.length === 0) {
+      vscode.window.showErrorMessage('Open a folder/workspace first.');
+      return;
+    }
+
+    const targetFolder = folders[0].uri.fsPath;
+    const projectRoot = path.dirname(path.dirname(mainScriptPath));
+
+    await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: 'Indexing workspace... (this may take a minute)' },
+      () => {
+        return new Promise<void>((resolve) => {
+          exec(
+            `"${pythonPath}" "${mainScriptPath}" index "${targetFolder}"`,
+            { cwd: projectRoot, maxBuffer: 1024 * 1024 * 10 },
+            (error, stdout, stderr) => {
+              if (error) {
+                vscode.window.showErrorMessage(`Indexing failed: ${stderr || error.message}`);
+                resolve();
+                return;
+              }
+              vscode.window.showInformationMessage('Indexing complete! You can now search.');
+              resolve();
+            }
+          );
+        });
+      }
+    );
+  });
+
+  context.subscriptions.push(searchCommand, indexCommand);
 }
 
 export function deactivate() {}
