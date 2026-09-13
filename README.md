@@ -2,6 +2,8 @@
 
 ![Demo](demo.gif)
 
+[Install from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=AryanJadhav.local-code-search)
+
 Search your codebase using plain English, right inside VS Code — entirely
 locally. No code is ever sent to the cloud.
 

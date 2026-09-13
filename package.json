@@ -2,6 +2,11 @@
   "name": "local-code-search",
   "displayName": "local-code-search",
   "description": "Search your codebase by meaning, entirely locally",
+  "publisher": "AryanJadhav",
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/omujadhav/local-code-search-vscode.git"
+  },
   "icon": "icon.png",
   "version": "0.0.1",
   "engines": {
