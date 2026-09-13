@@ -1,5 +1,7 @@
 # Local Code Search
 
+![Demo](demo.gif)
+
 Search your codebase using plain English, right inside VS Code — entirely
 locally. No code is ever sent to the cloud.
 
