@@ -83,12 +83,24 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
               }
 
-              const items = parsed.results.map((r) => ({
-                label: `${r.name}`,
-                description: `${r.type} · score ${r.score.toFixed(3)}`,
-                detail: `${r.file}:${r.start_line}`,
-                result: r
-              }));
+              const items = parsed.results.map((r) => {
+                const relativePath = vscode.workspace.asRelativePath(r.file, false);
+                const icon = r.type === 'class_definition' ? '$(symbol-class)' : '$(symbol-function)';
+
+                let confidence = 'Weak match';
+                if (r.score >= 0.5) {
+                  confidence = 'Strong match';
+                } else if (r.score >= 0.35) {
+                  confidence = 'Good match';
+                }
+
+                return {
+                  label: `${icon} ${r.name}`,
+                  description: confidence,
+                  detail: `${relativePath}:${r.start_line}-${r.end_line}`,
+                  result: r
+                };
+              });
 
               const picked = await vscode.window.showQuickPick(items, {
                 placeHolder: `Results for "${query}"`
@@ -97,10 +109,18 @@ export function activate(context: vscode.ExtensionContext) {
               if (picked) {
                 const doc = await vscode.workspace.openTextDocument(picked.result.file);
                 const editor = await vscode.window.showTextDocument(doc);
-                const line = Math.max(0, picked.result.start_line - 1);
-                const range = new vscode.Range(line, 0, line, 0);
-                editor.selection = new vscode.Selection(range.start, range.start);
-                editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+
+                const startLine = Math.max(0, picked.result.start_line - 1);
+                const endLine = Math.min(doc.lineCount - 1, picked.result.end_line - 1);
+
+                const startPos = new vscode.Position(startLine, 0);
+                const endPos = doc.lineAt(endLine).range.end;
+
+                editor.selection = new vscode.Selection(startPos, endPos);
+                editor.revealRange(
+                  new vscode.Range(startPos, endPos),
+                  vscode.TextEditorRevealType.InCenter
+                );
               }
 
               resolve();
